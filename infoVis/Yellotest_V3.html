@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+rect {
+  fill: transparent;
+}
+
+.d3-tip {
+  line-height: 1.2;
+  font-weight: thin;
+  padding: 12px;
+  background: black;
+  color: white;
+}
+
+.d3-tip:before {
+  box-sizing: border-box;
+  font-size: 5px;
+  width: 100%;
+  line-height: 6;
+  content: "\25BC";
+  position: absolute;
+}
+
+.d3-tip:after {
+  margin: -1px 0 0 0;
+  top: 100%;
+  left: 0;
+}
+
+</style>
+<body>
+  <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+  <script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
+	<script>
+
+  d3.csv('flowers.csv',function (data) {
+  data.forEach(function(d){ d.Species = d.species;})
+
+  var body = d3.select('body')
+  var axisx_Data1 = [ { "text" : "sepal_width" },{ "text" : "petal_width" },]
+  var axisy_Data2 = [{ "text" : "sepal_length"},{ "text" : "petal_length"},]
+
+
+  var body = d3.select('body')
+  var margin = { top: 30, left: 80, bottom: 30, right: 30 }
+  var h = 500 - margin.top - margin.bottom
+  var w = 800 - margin.left - margin.right
+
+//scale
+  var xScale = d3.scale.linear()
+    .domain([
+      d3.min(data,function (d) { return d['sepal_width']} ),
+      d3.max(data,function (d) { return d['sepal_width'] })])
+    .range([0,w])
+  var yScale = d3.scale.linear()
+    .domain([
+      d3.min(data,function (d) { return d['sepal_length'] }),
+      d3.max(data,function (d) { return d['sepal_length'] })])
+    .range([h,0])
+
+
+  // axis
+  var xAxis = d3.svg.axis()
+    .scale(xScale)
+    .orient('bottom')
+    .ticks(8)
+  var yAxis = d3.svg.axis()
+    .scale(yScale)
+    .orient('left')
+    .ticks(8)
+
+  //tooltip
+  var tip = d3.tip()
+      .attr("class", "d3-tip")
+      .offset([-10, 0])
+      .html(function(d) {
+        return "Sepal width  :" + d.sepal_width + "<br/>"  + "Sepal length:" +d.sepal_length + "<br/>"  +"Petal width  :" + d.petal_width+ "<br/>"  + "Petal length  :"+d.petal_length+ "<br/>"  + "Species:"+d.species;
+      });
+
+  //axis zoom
+  var zoom_inandout = d3.behavior.zoom()
+      .x(xScale)
+      .y(yScale)
+      .scaleExtent([0, 500])
+      .on("zoom", zoom);
+
+  var svg = body.append("svg")
+      .attr("width", "800")
+      .attr("height", "500")
+      .append("g")
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+      .call(zoom_inandout);
+
+  svg.call(tip);
+  var canvas = svg.append("rect")
+      .attr("width", w)
+      .attr("height", h);
+
+  // X、Y-axis
+  svg.append('g')
+      .attr('class','xaxis')
+      .attr('id','xAxis')
+      .attr('transform', 'translate(0,' + h + ')')
+      .call(xAxis)
+      .append('text')
+      .attr('id','xAxisLabel')
+      .attr('y',-20)
+      .attr('x',w)
+      .style('text-anchor','end')
+      .text('sepal_width')
+  svg.append('g')
+      .attr('class','yaxis')
+      .attr('id','yAxis')
+      .call(yAxis)
+      .append('text')
+      .attr('id', 'yAxisLabel')
+      .attr('transform','rotate(-90)')
+      .attr('x',0)
+      .attr('y',20)
+      .style('text-anchor','end')
+      .text('sepal_length')
+//circle
+  var objects = svg.append("svg")
+      .classed("objects", true)
+      .attr("width", w)
+      .attr("height", h);
+  objects.selectAll(".dot")
+  			.data(data)
+  			.enter()
+  			.append("circle")
+        .attr("class","dot")
+        .attr('cx',function (d) { return xScale(d['sepal_width']) })
+        .attr('cy',function (d) { return yScale(d['sepal_length']) })
+        .attr('r','3')
+        .attr('fill',function (d,i) {
+          if(d.Species === "setosa"){return "red" }
+          if(d.Species === "versicolor"){return "blue" }
+          if(d.Species === "virginica"){return "yellow" }
+        })
+        .on("mouseover", tip.show)
+        .on("mouseout", tip.hide);
+
+  function zoom() {
+    svg.select(".xaxis").call(xAxis);
+    svg.select(".yaxis").call(yAxis);
+    svg.selectAll(".dot")
+        .attr('cx',function (d) { return xScale(d['sepal_width']) })
+        .attr('cy',function (d) { return yScale(d['sepal_length']) })
+  }
+
+
+  //legend
+  var colors = ["red","red","blue","yellow"]
+  var textfile = ["setosa","versicolor","virginica"]
+    var rec = svg.selectAll('rect')
+      .data(colors)
+      .enter()
+      .append('rect')
+      .attr('class', 'rect')
+      .attr('x', w-3)
+      .style('fill', function(d, j) { return colors[j]; })
+      .attr('y', function(d,i){return i * 20 -20 ;})
+      .attr('width', 18)
+      .attr('height', 18)
+
+      svg.selectAll(".text")
+          .data(textfile)
+          .enter()
+          .append("text")
+          .attr("class","text")
+          .attr("x", w-15)
+          .attr("y", function(d,i){return 13 + i * 20;})
+          .style('text-anchor', 'end')
+          .text(function(d) { return d; });
+
+
+  //Change AXIS
+  function differentX() {
+    var value = this.value
+    xScale.domain([
+        d3.min([d3.min(data,function (d) { return d[value] }),d3.min(data,function (d) { return d[value] })]),
+        d3.max([d3.max(data,function (d) { return d[value] }),d3.max(data,function (d) { return d[value] })])
+        ])
+    xAxis.scale(xScale)
+    d3.select('#xAxis')
+      .transition().duration(100)
+      .call(xAxis)
+    d3.select('#xAxisLabel')
+      .transition().duration(100)
+      .text(value)
+    d3.selectAll('circle')
+      .transition().duration(100)
+      .delay(function (d,i) { return i*5})
+      .attr('cx',function (d) { return xScale(d[value]) })
+  }
+
+  function differentY() {
+    var value = this.value
+    yScale.domain([
+        d3.min([d3.min(data,function (d) { return d[value] }),d3.min(data,function (d) { return d[value] })]),
+        d3.max([d3.max(data,function (d) { return d[value] }),d3.max(data,function (d) { return d[value] })])
+        ])
+    yAxis.scale(yScale)
+    d3.select('#yAxis')
+      .transition().duration(100)
+      .call(yAxis)
+    d3.select('#yAxisLabel')
+      .text(value)
+    d3.selectAll('circle')
+      .transition().duration(100)
+      .delay(function (d,i) { return i*5})
+      .attr('cy',function (d) { return yScale(d[value]) })
+  }
+
+
+  body.append('br')
+  var span = body.append('span')
+      .text('selector_X : ')
+  var selector_X = body.append('select')
+      .attr('id','selectY')
+      .on('change',differentX)
+      .selectAll('option')
+      .data(axisx_Data1)
+      .enter()
+      .append('option')
+      .attr('value', function (d) { return d.text })
+      .text(function (d) { return d.text ;})
+
+  body.append('span')
+  var span = body.append('span')
+      .text('selector_Y : ')
+  var selector_Y = body.append('select')
+      .attr('id','selectY')
+      .on('change',differentY)
+      .selectAll('option')
+      .data(axisy_Data2)
+      .enter()
+      .append('option')
+      .attr('value', function (d) { return d.text })
+      .text(function (d) { return d.text ;})
+  body.append('br')
+
+})
+
+</script>
+</body>
